@@ -11,15 +11,18 @@ import os
 
 class avSpider:
     def __init__(self):
-        self.tiebaName = str(input("请输入女优代号（佐々木あき:p8y）:"))
+        #默认保存目录
+        self.orDir = 'H:/test/'
+        self.actressName = str(input("请输入女优代号（佐々木あき:p8y）:"))
         self.Page = int(input("请输入爬取页码:"))
         self.url = 'https://www.javbus.com/star/'
         self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36','Accept-Language': 'zh-CN,zh;q=0.8'}
-     
+        #self.proxies = {"http": "https://127.0.0.1:8087"}
+
     def loadUrl(self):
         pn = str(self.Page)
         #拼凑完整url，获取详细地址目录
-        myUrl = self.url + self.tiebaName + '/' + pn
+        myUrl = self.url + self.actressName + '/' + pn
         response  = requests.get(myUrl,headers = self.headers)
         resHtml =response.text
         
@@ -36,6 +39,10 @@ class avSpider:
         resHtml =response.text
         
         html = etree.HTML(resHtml)
+        
+        result = etree.tostring(html)
+        with open('./1.html','w') as h:
+            h.write(str(result))
         #获取封面图及预览图url
         imgUrl = html.xpath('//a[contains(@class,"bigImage")]/img/@src')[0]
         deImgUrl = html.xpath('//a[contains(@class,"sample-box")]/@href')
@@ -43,12 +50,13 @@ class avSpider:
         title = html.xpath('/html/body/div/h3/text()')[0]
         #获取发行日期
         date = html.xpath('/html/body//p[2]/text()')[0]
-        #拼凑目录名
+        #拼凑目录名,去除目录里的‘/'防止创建文件夹目录失败
         Dir = date + '-' + title
         myDir = Dir.replace('/','-')
         
         #获取影片磁力链接Demo
-        magnets = html.xpath('//table[@id="magnet-table"]/tr/td[1]/a[1]/@href')
+        magnets = html.xpath('//*[@id="magnet-table"]/tr[1]/td[1]/a[1]/@href').encode('ascii')
+        
         print(magnets)
         #调用内容保存方法
         self.savefile(imgUrl,deImgUrl,myDir,magnets)
@@ -58,8 +66,13 @@ class avSpider:
         
     def savefile(self,imgUrl,deImgUrl,myDir,magnets):
         #保存内容
+        
+        #创建保存文件目录
         print (myDir)
-        fullDir = 'H:/test/' + myDir
+        actressDir = self.orDir + self.actressName + '-' +str(self.Page)
+        while not os.path.exists(actressDir):
+            os.mkdir(actressDir)
+        fullDir = actressDir + '/' + myDir
         while not os.path.exists(fullDir):
             os.mkdir(fullDir)
         os.chdir(fullDir)
